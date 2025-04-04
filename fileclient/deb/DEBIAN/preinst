@@ -1,0 +1,5 @@
+#!/bin/sh
+
+rm -rf /opt/myfileclient >/dev/null 2>&1
+
+exit 0

@@ -1,0 +1,8 @@
+Package:myfileclient
+Version:0.0.0
+Section:free
+Priority:optional
+Architecture:amd64
+Maintainer:xxnull@163.com
+Provides:xxNull
+Description:一款私有云盘客户端

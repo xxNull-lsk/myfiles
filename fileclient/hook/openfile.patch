@@ -1,0 +1,14 @@
+142c142
+<         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+---
+>         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_ACTIVITY_NO_HISTORY);
+148a149,153
+>         Intent chooserIntent = Intent.createChooser(
+>             intent, 
+>             "Open with"
+>         );
+>         chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+158c163
+<             activity.startActivity(intent);
+---
+>             activity.startActivity(chooserIntent);

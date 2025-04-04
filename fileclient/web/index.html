@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="fileclient">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png" />
+
+  <title>fileclient</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      -ms-transform: translate(-50%, -50%);
+      transform: translate(-50%, -50%);
+      flex: auto;
+      flex-direction: column;
+    }
+
+    .logo {
+      width: 5em;
+      height: 5em;
+      margin-bottom: 0.2em;
+    }
+
+    .message {
+      font-size: 0.6em;
+      font-weight: normal;
+      color: #000;
+    }
+
+    .preloader {
+      width: 100%;
+      height: 8em;
+      overflow: hidden;
+      background: white;
+      z-index: 9999;
+      transition: opacity .65s;
+      flex-direction: row;
+    }
+
+    .preloader-hidden-add {
+      opacity: 1;
+      display: block
+    }
+
+    .preloader-hidden-add-active {
+      opacity: 0
+    }
+
+    .preloader-hidden {
+      display: none
+    }
+
+    .cs-loader {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%
+    }
+
+    .cs-loader-inner {
+      transform: translateY(-50%);
+      top: 50%;
+      position: absolute;
+      width: 100%;
+      color: skyblue;
+      text-align: center
+    }
+
+    .cs-loader-inner label {
+      font-size: 0.6em;
+      opacity: 0;
+      display: inline-block
+    }
+
+    @keyframes lol {
+      0% {
+        opacity: 0;
+        transform: translateX(-20em)
+      }
+
+      33% {
+        opacity: 1;
+        transform: translateX(0)
+      }
+
+      66% {
+        opacity: 1;
+        transform: translateX(0)
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateX(20em)
+      }
+    }
+
+    .cs-loader-inner label:nth-child(6) {
+      animation: lol 3s infinite ease-in-out
+    }
+
+    .cs-loader-inner label:nth-child(5) {
+      animation: lol 3s .1s infinite ease-in-out
+    }
+
+    .cs-loader-inner label:nth-child(4) {
+      animation: lol 3s .2s infinite ease-in-out
+    }
+
+    .cs-loader-inner label:nth-child(3) {
+      animation: lol 3s .3s infinite ease-in-out
+    }
+
+    .cs-loader-inner label:nth-child(2) {
+      animation: lol 3s .4s infinite ease-in-out
+    }
+
+    .cs-loader-inner label:nth-child(1) {
+      animation: lol 3s .5s infinite ease-in-out
+    }
+  </style>
+</head>
+
+<body>
+  <div class="loading">
+    <img class="logo" src="icons/Icon-192.png" />
+    <span class="message" id="message"></span>
+    <div class="preloader">
+      <div class="cs-loader">
+        <div class="cs-loader-inner">
+          <label> ●</label>
+          <label> ●</label>
+          <label> ●</label>
+          <label> ●</label>
+          <label> ●</label>
+          <label> ●</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    Date.prototype.Format = function (fmt) {
+      var o = {
+        "M+": this.getMonth() + 1, //月份
+        "d+": this.getDate(), //日
+        "H+": this.getHours(), //小时
+        "m+": this.getMinutes(), //分
+        "s+": this.getSeconds(), //秒
+        "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+        "S": this.getMilliseconds() //毫秒
+      };
+      if (/(y+)/.test(fmt)) {
+        fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+      }
+      for (var k in o) {
+        if (new RegExp("(" + k + ")").test(fmt)) {
+          fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+        }
+      }
+      return fmt;
+    }
+
+    function log(txt) {
+      var currentTime = new Date();
+      console.log("[ INFO] TIME: " + currentTime.Format("yyyy-MM-dd HH:mm:ss.S") + " " + txt);
+    }
+    
+    const message = document.getElementById('message');
+    message.textContent = "正在加载引擎...";
+    log(message.textContent);
+
+    {{flutter_js}}
+    {{flutter_build_config}}
+    _flutter.loader.load({
+      onEntrypointLoaded: async function (engineInitializer) {
+        message.textContent = "正在初始化引擎...";
+        log(message.textContent);
+        const appRunner = await engineInitializer.initializeEngine();
+
+        message.textContent = "启动应用程序...";
+        log(message.textContent);
+        await appRunner.runApp();
+        message.textContent = "正在加载资源...";
+        log(message.textContent);
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,5 @@
+#!/bin/sh
+chown root:root -R /opt/myfileclient
+#chmod 0700 -R /opt/myfileclient
+
+exit 0

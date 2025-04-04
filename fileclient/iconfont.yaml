@@ -1,0 +1,9 @@
+- icons:
+  - url: //at.alicdn.com/t/c/font_4774190_l2o5o82730o.css
+    icon_name: filetype1
+    icon_class: FileType1
+  - url: //at.alicdn.com/t/c/font_4774194_9zdmn4gw6lb.css
+    icon_name: filetype2
+    icon_class: FileType2
+  font_assets_path: assets/iconfont/
+  icon_class_path: lib/icons/

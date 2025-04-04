@@ -1,0 +1,22 @@
+{
+  "bind": {
+    "ip": "0.0.0.0",
+    "port": "8080"
+  },
+  "logger": {
+    "path": "/var/log/myfileserver",
+    "info_file": "info.log",
+    "error_file": "err.log",
+    "max_days": 7,
+    "info_level": 0,
+    "error_level": 2
+  },
+  "server": {
+    "root_dir": "",
+    "temp_dir": "/tmp/myfileserver",
+    "database_file": "/var/lib/myfileserver/myfilerserver.db",
+    "user_name": "",
+    "password": "",
+    "disable_webui": false
+  }
+}

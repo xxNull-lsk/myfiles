@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=System;FileTools
+Type=Application
+Icon=/opt/myfileclient/data/flutter_assets/assets/images/app.png
+StartupNotify=false
+Terminal=false
+Name=MyFileClient
+GenericName=MyFileClient
+GenericName[zh_CN]=我的文件
+Name[zh_CN]=我的文件
+Exec=/opt/myfileclient/fileclient
