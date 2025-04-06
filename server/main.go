@@ -237,6 +237,9 @@ func main() {
 			c.Redirect(http.StatusFound, "/front/index.html")
 		})
 	}
+
+	r.Use(webserver.LoggerMiddleware())
+
 	r.GET("/api/version", ws.ReqVersion())
 
 	r.POST("/api/logout", webserver.MiddlewareInstall(&ws), webserver.AuthMiddleware(), ws.ReqLogout())

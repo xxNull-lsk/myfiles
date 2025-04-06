@@ -120,10 +120,32 @@ class TaskDialogState extends State<TaskDialog> {
     );
   }
 
+  void onClear() {
+    Global.taskManager?.clearFinishedTasks();
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
+    int count = 0;
+    for (TransTaskItem task in Global.taskManager!.tasks) {
+      if (task.status != TransStatus.succeed &&
+          task.status != TransStatus.failed) {
+        count++;
+      }
+    }
     return AlertDialog(
-      title: Text(widget.title),
+      title: Row(
+        children: [
+          Text(
+              "${widget.title} ($count / ${Global.taskManager!.tasks.length})"),
+          Spacer(),
+          ElevatedButton(
+            onPressed: onClear,
+            child: const Text('清除已完成'),
+          )
+        ],
+      ),
       titlePadding: EdgeInsets.all(8),
       contentPadding: EdgeInsets.all(16),
       content: SizedBox(

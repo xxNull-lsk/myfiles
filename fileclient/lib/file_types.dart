@@ -29,6 +29,17 @@ class FileEntry {
     createdAt = stat.changed;
     modifiedAt = stat.modified;
   }
+
+  Map toMap() {
+    return {
+      "name": name,
+      "is_dir": isDir,
+      "file_mode": fileMode,
+      "size": size,
+      "created_at": createdAt.toIso8601String(),
+      "modified_at": modifiedAt.toIso8601String(),
+    };
+  }
 }
 
 class FileAttributes {

@@ -6,6 +6,7 @@ set GIT_COMMIT=%3
 
 
 cd %~dp0
+git remote update -p
 git reset --hard HEAD
 git checkout %GIT_BRANCH%
 git pull

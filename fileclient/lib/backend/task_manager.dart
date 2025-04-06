@@ -6,7 +6,9 @@ import 'package:dio/dio.dart';
 import 'package:fileclient/event.dart';
 import 'package:fileclient/util.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
+import '../file_types.dart';
 import '../global.dart';
 import 'backend.dart';
 
@@ -37,6 +39,14 @@ enum TransStatus {
   failed,
 }
 
+class TransProgress {
+  int curr = 0;
+  int total = 0;
+  String currFile = "";
+  Map result = {};
+  Map<String, Map> results = {};
+}
+
 extension TransStatusName on TransStatus {
   String get name {
     switch (this) {
@@ -62,6 +72,8 @@ class TransTaskItem {
   final String taskId = generateRandomString(16);
   final String localFilePath;
   final String remoteFilePath;
+  final String urlUpload;
+  final FileItem? remoteFileItem;
   Map<String, dynamic>? params;
   TransInfo? transInfo;
   PackageInformation? packageInfo;
@@ -71,6 +83,8 @@ class TransTaskItem {
       required this.taskType,
       required this.localFilePath,
       required this.remoteFilePath,
+      required this.urlUpload,
+      this.remoteFileItem,
       this.params});
 
   void onRecvPackageMessage(TransStatus status, dynamic message) {
@@ -168,6 +182,14 @@ class TaskManager {
     listenEventTasksChanged.cancel();
   }
 
+  void clearFinishedTasks() {
+    Global.logger?.i("clear finished tasks...");
+    tasks.removeWhere((task) =>
+        task.status == TransStatus.succeed ||
+        task.status == TransStatus.failed);
+    EventBusSingleton.instance.fire(EventTasksChanged(false, null));
+  }
+
   void removeTask(TransTaskItem task) {
     Global.logger?.i("remove task ${task.taskId} from tasks...");
     // 如果是下载任务，并且没有完成，删除本地文件
@@ -228,6 +250,7 @@ class TaskManager {
           task.taskId,
           task.remoteFilePath,
           task.localFilePath,
+          task.remoteFileItem?.entry.toMap(),
         ]);
         break;
       case TaskType.upload:
@@ -239,6 +262,7 @@ class TaskManager {
           task.taskId,
           task.localFilePath,
           task.remoteFilePath,
+          task.urlUpload,
           task.params,
         ]);
         break;
@@ -293,13 +317,110 @@ class TaskManager {
     String taskId = message[4];
     String remoteFilePath = message[5];
     String localFilePath = message[6];
-    return Backend.downloadFile(remoteFilePath, localFilePath, (curr, total) {
-      sendPort.send([taskId, TransStatus.running, curr, total]);
-    }, (result) {
-      sendPort.send([taskId, TransStatus.succeed, result]);
-    }, (ex, method, url) {
-      sendPort.send([taskId, TransStatus.failed, ex.toString(), method, url]);
-    });
+    FileEntry remoteFileEntry = FileEntry();
+    remoteFileEntry.fromJson(message[7]);
+    if (remoteFileEntry.isDir) {
+      TransProgress progress = TransProgress();
+      // 计算目录下的所有文件大小的和
+      progress.curr = 0;
+      progress.total = 0;
+      Response response =
+          await Backend.getFileAttributeAsync(remoteFilePath, recursion: true);
+      if (response.statusCode != 200) {
+        sendPort.send([taskId, TransStatus.failed, response.statusMessage]);
+        return;
+      }
+      Map result = response.data;
+      if (result["code"] != 0) {
+        sendPort.send([taskId, TransStatus.failed, result["message"]]);
+        return;
+      }
+      progress.total = result["data"]["entry"]["size"];
+      await downloadDirectory(remoteFileEntry, remoteFilePath, localFilePath,
+          sendPort, taskId, progress);
+      // TDOO: 处理部分下载失败的情况
+      sendPort.send([
+        taskId,
+        TransStatus.succeed,
+        {"code": 0, "message": "success"}
+      ]);
+    } else {
+      return Backend.downloadFile(remoteFilePath, localFilePath, (curr, total) {
+        sendPort.send([taskId, TransStatus.running, curr, total]);
+      }, (result) {
+        sendPort.send([taskId, TransStatus.succeed, result]);
+      }, (ex, method, url) {
+        sendPort.send([taskId, TransStatus.failed, ex.toString(), method, url]);
+      });
+    }
+  }
+
+  static Future<void> downloadDirectory(
+      FileEntry remoteFileEntry,
+      String remoteFilePath,
+      String localFilePath,
+      SendPort sendPort,
+      String taskId,
+      TransProgress progress) async {
+    progress.currFile = remoteFilePath;
+    Response response = await Backend.getFolderAsync(remoteFilePath);
+    if (response.statusCode != 200) {
+      progress.results[remoteFilePath] = {
+        "code": response.statusCode,
+        "message": response.statusMessage
+      };
+      return;
+    }
+    Map result = response.data;
+    if (result["code"] != 0) {
+      progress.results[remoteFilePath] = result;
+      return;
+    }
+    Directory localDir = Directory(localFilePath);
+    if (!localDir.existsSync()) {
+      localDir.createSync(recursive: true);
+    }
+    List<dynamic> files = result["files"];
+    for (var file in files) {
+      FileEntry fileEntry = FileEntry();
+      fileEntry.fromJson(file);
+      if (fileEntry.isDir) {
+        await downloadDirectory(
+            fileEntry,
+            joinPath([remoteFilePath, fileEntry.name]),
+            p.join(localFilePath, fileEntry.name),
+            sendPort,
+            taskId,
+            progress);
+      } else {
+        progress.currFile = remoteFilePath;
+        await Backend.downloadFile(joinPath([remoteFilePath, fileEntry.name]),
+            p.join(localFilePath, fileEntry.name), (curr, total) {
+          sendPort.send([
+            taskId,
+            TransStatus.running,
+            progress.curr + curr,
+            progress.total
+          ]);
+        }, (result) {
+          File file = File(p.join(localFilePath, fileEntry.name));
+          progress.curr += file.lengthSync();
+          progress.results[remoteFilePath] = result;
+        }, (ex, method, url) {
+          progress.results[remoteFilePath] = {
+            "code": -500,
+            "message": ex.toString(),
+            "method": method,
+            "url": url
+          };
+        });
+      }
+    }
+    // TODO:支持修改目录的最后修改时间
+    /*
+    Directory dir = Directory(localFilePath);
+    dir.setLastModifiedSync(remoteFileEntry.modifiedAt);
+    */
   }
 
   static Future<void> uploadThread(List message) async {
@@ -310,99 +431,190 @@ class TaskManager {
     String taskId = message[4];
     String localFilePath = message[5];
     String remoteFilePath = message[6];
-    Map<String, dynamic>? params = message[7];
+    String urlUpload = message[7];
+    Map<String, dynamic>? params = message[8];
 
-    Response response = await Backend.createUploadFileTask(
-        remoteFilePath, params!, localFilePath);
-    if (response.statusCode != 200) {
+    FileSystemEntityType fileType = FileSystemEntity.typeSync(localFilePath);
+    bool res = false;
+    TransProgress progress = TransProgress();
+    progress.curr = 0;
+    if (fileType == FileSystemEntityType.directory) {
+      // 如果是目录，遍历目录下的文件
+      Directory directory = Directory(localFilePath);
+      // 统计目录下的文件大小
+      directory.listSync(recursive: true).forEach((entity) {
+        if (entity is File) {
+          progress.total += entity.lengthSync();
+        }
+      });
+      res = await onUploadDirectory(directory, progress, taskId, sendPort,
+          params!, localFilePath, remoteFilePath, urlUpload);
+    } else if (fileType == FileSystemEntityType.file) {
+      File file = File(localFilePath);
+      progress.total = file.lengthSync();
+      res = await onUploadFile(file, progress, taskId, sendPort, params!,
+          localFilePath, remoteFilePath, urlUpload);
+    } else {
       sendPort.send([
         taskId,
         TransStatus.failed,
-        "request failed!${response.statusCode}: ${response.statusMessage}",
-        "createUploadFileTask",
-        remoteFilePath
-      ]);
-    }
-    Map result = response.data;
-    if (result["code"] != 0) {
-      sendPort.send([
-        taskId,
-        TransStatus.failed,
-        "error in server.${result["code"]}: ${result["message"]}",
-        "createUploadFileTask",
-        remoteFilePath
-      ]);
-      return;
-    }
-    await onUploadChunk(taskId, sendPort, result, localFilePath);
-  }
-
-  static Future<void> onUploadChunk(
-      String taskId, SendPort sendPort, Map result, String filePath) async {
-    if (result["code"] != 0) {
-      sendPort.send([
-        taskId,
-        TransStatus.failed,
-        "CreateUploadFileTask failed!${result["code"]}: ${result["message"]}",
+        "CreateUploadFileTask failed!Not support file type: ${fileType.toString()}",
         "CreateUploadFileTask",
         ""
       ]);
       return;
     }
 
-    String uploadTaskId = result["data"]["upload_task_id"];
-    File file = File(filePath);
-    int fileSize = file.lengthSync();
+    if (res) {
+      Map result = {};
+      result["code"] = 0;
+      result["message"] = "success";
+      sendPort.send([taskId, TransStatus.succeed, result]);
+    } else {
+      sendPort.send([
+        taskId,
+        TransStatus.failed,
+        "upload failed!${progress.result["code"]}: ${progress.result["message"]}",
+        "UploadChunk",
+        ""
+      ]);
+    }
+  }
+
+  static Future<bool> onUploadDirectory(
+      Directory directory,
+      TransProgress progress,
+      String taskId,
+      SendPort sendPort,
+      Map<String, dynamic> params,
+      String localFilePath,
+      String remoteFilePath,
+      String urlUpload) async {
+    progress.currFile = localFilePath;
+    Map result = {};
+    Response response = await Backend.createFolderAsync(remoteFilePath);
+    if (response.statusCode != 200) {
+      result["code"] = response.statusCode;
+      result["message"] = response.statusMessage;
+      progress.result = result;
+      return false;
+    }
+    result = response.data;
+    if (result["code"] != 0) {
+      return false;
+    }
+    List<FileSystemEntity> files = directory.listSync();
+    for (var file in files) {
+      bool res;
+      if (file is Directory) {
+        res = await onUploadDirectory(
+            file,
+            progress,
+            taskId,
+            sendPort,
+            params,
+            file.path,
+            joinPath([remoteFilePath, p.basename(file.path)]),
+            urlUpload);
+        continue;
+      } else if (file is File) {
+        res = await onUploadFile(
+            file,
+            progress,
+            taskId,
+            sendPort,
+            params,
+            file.path,
+            joinPath([remoteFilePath, p.basename(file.path)]),
+            urlUpload);
+      } else {
+        continue;
+      }
+      if (!res) {
+        // TODO：记录失败文件的日志。
+      }
+    }
+    return true;
+  }
+
+  static Future<bool> onUploadFile(
+      File file,
+      TransProgress progress,
+      String taskId,
+      SendPort sendPort,
+      Map<String, dynamic> params,
+      String localFilePath,
+      String remoteFilePath,
+      String urlUpload) async {
+    progress.currFile = localFilePath;
+    final int fileSize = file.lengthSync();
+    Response response;
+    if (fileSize == 0) {
+      response = await Backend.createFileAsync(
+          dirName(remoteFilePath), baseName(remoteFilePath));
+      if (response.statusCode != 200) {
+        progress.result["code"] = response.statusCode;
+        progress.result["message"] = response.statusMessage;
+        return false;
+      }
+      progress.result = response.data;
+      if (progress.result["code"] != 0) {
+        return false;
+      }
+      return true;
+    }
+    response = await Backend.createUploadFileTask(
+        urlUpload, {"path": dirName(remoteFilePath)}, localFilePath);
+    if (response.statusCode != 200) {
+      progress.result["code"] = response.statusCode;
+      progress.result["message"] = response.statusMessage;
+      return false;
+    }
+    progress.result = response.data;
+    if (progress.result["code"] != 0) {
+      return false;
+    }
     int chunkSize = 1024 * 1024 * 10;
-    int finishSize = 0;
     bool failed = false;
-    sendPort.send([taskId, TransStatus.starting, fileSize, uploadTaskId]);
     var reader = file.openSync();
-    while (finishSize < fileSize && !failed) {
+    int position = 0;
+    final String uploadTaskId = progress.result["data"]["upload_task_id"];
+    while (fileSize > position && !failed) {
       int readSize = chunkSize;
-      if (finishSize + readSize >= fileSize) {
-        readSize = fileSize - finishSize;
+      if (fileSize - position < readSize) {
+        readSize = fileSize - position;
       }
       Uint8List bytes = reader.readSync(readSize);
       Response response = await Backend.uploadFileChunk(
-          uploadTaskId, bytes, finishSize, (finish, total) {
+          uploadTaskId, bytes, position, (finish, total) {
         if (failed) {
           return;
         }
-        sendPort
-            .send([taskId, TransStatus.running, finishSize + finish, fileSize]);
+        sendPort.send([
+          taskId,
+          TransStatus.running,
+          progress.curr + finish,
+          progress.total
+        ]);
       });
       if (response.statusCode != 200) {
         failed = true;
-        sendPort.send([
-          taskId,
-          TransStatus.failed,
-          "request failed!${response.statusCode}: ${response.statusMessage}",
-          "UploadChunk",
-          ""
-        ]);
         reader.closeSync();
-        return;
+        progress.result["code"] = response.statusCode;
+        progress.result["message"] = response.statusMessage;
+        return false;
       }
-      Map result = response.data;
-      if (result["code"] != 0) {
+      progress.result = response.data;
+      if (progress.result["code"] != 0) {
         failed = true;
-        sendPort.send([
-          taskId,
-          TransStatus.failed,
-          "UploadChunk failed!${result["code"]}: ${result["message"]}",
-          "UploadChunk",
-          ""
-        ]);
         reader.closeSync();
-        return;
+        return false;
       }
-      finishSize += readSize;
-      if (finishSize >= fileSize) {
-        sendPort.send([taskId, TransStatus.succeed, result]);
-      }
+      position += bytes.length;
+      progress.curr += bytes.length;
     }
     reader.closeSync();
+    return true;
   }
 
   static void downloadPackageThread(List message) async {

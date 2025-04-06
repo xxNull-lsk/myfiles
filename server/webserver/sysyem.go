@@ -13,6 +13,12 @@ import (
 
 func (ws *WebServer) ReqGetSystemInformation() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 计算代码执行时间
+		withDynamic := true
+		if c.Query("with_dynamic") == "0" {
+			withDynamic = false
+		}
+
 		// 获取内存的信息
 		memInfo, _ := mem.VirtualMemory()
 
@@ -20,9 +26,15 @@ func (ws *WebServer) ReqGetSystemInformation() gin.HandlerFunc {
 		physicalCount, _ := cpu.Counts(false)
 		logicalCount, _ := cpu.Counts(true)
 
-		totalPercent, _ := cpu.Percent(3*time.Second, false)
-		perPercents, _ := cpu.Percent(3*time.Second, true)
-		cpuInfos, _ := cpu.Info()
+		var totalPercent []float64
+		var perPercents []float64
+		var cpuInfos []cpu.InfoStat
+		if withDynamic {
+			interval, _ := time.ParseDuration(c.DefaultQuery("interval", "3s"))
+			totalPercent, _ = cpu.Percent(interval, false)
+			perPercents, _ = cpu.Percent(interval, true)
+		}
+		cpuInfos, _ = cpu.Info()
 
 		// 获取IO信息
 		mapIOCounterStat, _ := disk.IOCounters()

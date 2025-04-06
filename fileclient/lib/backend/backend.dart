@@ -165,12 +165,13 @@ class Backend {
   static Future<void> getFileAttribute(String path,
       HttpSucceedCallback onSucceed, HttpFailedCallback onFailed) async {
     return DioUtil.doGET("/api/attribute", onSucceed, onFailed,
-        {"path": path, "recursion": "0"});
+        {"path": path, "recursion": "0", "with_data": "1"});
   }
 
-  static Future<Response> getFileAttributeAsync(String path) async {
-    return DioUtil.doGETAsync(
-        "/api/attribute", {"path": path, "recursion": "0"});
+  static Future<Response> getFileAttributeAsync(String path,
+      {bool recursion = false}) async {
+    return DioUtil.doGETAsync("/api/attribute",
+        {"path": path, "recursion": recursion ? "1" : "0", "with_data": "1"});
   }
 
   static Future<void> getFolder(
@@ -225,8 +226,8 @@ class Backend {
 
   static Future<Response> writeFileAsync(
       String remoteFilePath, int offset, Uint8List data) async {
-    return DioUtil.doPUTDataAsync("/api/file/data", data,
-        {"path": remoteFilePath, "offset": offset});
+    return DioUtil.doPUTDataAsync(
+        "/api/file/data", data, {"path": remoteFilePath, "offset": offset});
   }
 
   static Future<Response> createDownloadPackageAsync(
@@ -348,9 +349,12 @@ class Backend {
     return DioUtil.doGET("/api/users", onSucceed, onFailed, null);
   }
 
-  static Future<void> getServerInfo(
-      HttpSucceedCallback onSucceed, HttpFailedCallback onFailed) {
-    return DioUtil.doGET("/api/system", onSucceed, onFailed, null);
+  static Future<void> getServerInfo(HttpSucceedCallback onSucceed,
+      HttpFailedCallback onFailed, bool withDynamic, String interval) {
+    return DioUtil.doGET("/api/system", onSucceed, onFailed, {
+      "with_dynamic": withDynamic ? 1 : 0,
+      "interval": interval,
+    });
   }
 
   static Future<void> deleteUser(UserInfo userInfo,

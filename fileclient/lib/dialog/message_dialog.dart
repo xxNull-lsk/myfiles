@@ -34,17 +34,23 @@ class MessageDialog extends StatelessWidget {
       title: Text(title),
       content: Text(content),
       actions: [
-        TextButton(
-          child: Text(cancelText),
-          onPressed: () {
-            Navigator.of(context).pop(MessageDialogResult.cancel);
-          },
+        Visibility(
+          visible: cancelText.isNotEmpty,
+          child: TextButton(
+            child: Text(cancelText),
+            onPressed: () {
+              Navigator.of(context).pop(MessageDialogResult.cancel);
+            },
+          ),
         ),
-        TextButton(
-          child: Text(okText),
-          onPressed: () {
-            Navigator.of(context).pop(MessageDialogResult.ok);
-          },
+        Visibility(
+          visible: okText.isNotEmpty,
+          child: TextButton(
+            child: Text(okText),
+            onPressed: () {
+              Navigator.of(context).pop(MessageDialogResult.ok);
+            },
+          ),
         ),
         Visibility(
           visible: ok2Text.isNotEmpty,

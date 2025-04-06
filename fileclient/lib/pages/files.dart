@@ -718,14 +718,23 @@ class _FilesPageState extends State<FilesPage> {
   }
 
   void getFileAttributesSuccess(String newPath, Map result) {
-    if (!result["entry"]["is_dir"]) {
+    if (result["code"] != 0) {
+      toastification.show(
+        title: const Text("获取文件属性失败"),
+        description: Text("${result["code"]}: ${result["message"]}"),
+        type: ToastificationType.error,
+        autoCloseDuration: const Duration(seconds: 3),
+      );
+      return;
+    }
+    if (!result["data"]["entry"]["is_dir"]) {
       setState(() {
         _loading = false;
       });
       toastification.show(title: const Text("不是目录，无法打开"));
       return;
     }
-    _fileAttributes.fromJson(result);
+    _fileAttributes.fromJson(result["data"]);
     if (!_loading) {
       setState(() {
         _loading = true;
@@ -964,15 +973,15 @@ class _FilesPageState extends State<FilesPage> {
     }
   }
 
-  void downloadFile(FileItem file, String? locationPath) async {
-    String localFilePath = file.entry.name;
+  void downloadFile(FileItem remoteFileItem, String? locationPath) async {
+    String localFilePath = remoteFileItem.entry.name;
     if (locationPath != null) {
-      localFilePath = p.join(locationPath, localFilePath);
+      localFilePath = p.join(locationPath, remoteFileItem.entry.name);
     }
 
     if (kIsWeb) {
       Backend.downloadFile(
-          joinPath([_currPath, file.entry.name]), localFilePath,
+          joinPath([_currPath, remoteFileItem.entry.name]), localFilePath,
           (int count, int total) {
         setState(() {});
       }, (result) {
@@ -982,17 +991,18 @@ class _FilesPageState extends State<FilesPage> {
           autoCloseDuration: const Duration(seconds: 3),
         );
       }, onFailed);
-      return;
-    }
-
-    bool addSucceed = Global.taskManager!.addTask(TransTaskItem(
-      pageID: widget.pageID,
-      taskType: TaskType.download,
-      localFilePath: localFilePath,
-      remoteFilePath: joinPath([_currPath, file.entry.name]),
-    ));
-    if (addSucceed == true) {
-      showTaskDialog(context);
+    } else {
+      bool addSucceed = Global.taskManager!.addTask(TransTaskItem(
+        pageID: widget.pageID,
+        taskType: TaskType.download,
+        localFilePath: localFilePath,
+        remoteFilePath: joinPath([_currPath, remoteFileItem.entry.name]),
+        urlUpload: "",
+        remoteFileItem: remoteFileItem,
+      ));
+      if (addSucceed == true) {
+        showTaskDialog(context);
+      }
     }
   }
 
@@ -1018,22 +1028,51 @@ class _FilesPageState extends State<FilesPage> {
         return;
       }
     }
-    for (var file in Global.filePages[widget.pageID]!.fileItems) {
+    for (FileItem file in Global.filePages[widget.pageID]!.fileItems) {
       if (!file.selected) {
         continue;
       }
       if (file.entry.isDir) {
         hasDir = true;
-        continue;
+        break;
       }
-      downloadFile(file, locationPath);
     }
 
     if (hasDir) {
-      toastification.show(
-        title: const Text("此方式不能下载文件夹，请使用下载为zip或tar.gz等压缩文件方式下载"),
-        autoCloseDuration: const Duration(seconds: 3),
-      );
+      if (!mounted) {
+        return;
+      }
+      MessageDialogResult? result;
+      if (kIsWeb) {
+        result = await showMessageDialog(
+          context,
+          "提示",
+          "此方式不能下载文件夹，请使用下载为zip或tar.gz等压缩文件方式下载。是否忽略文件夹？",
+          okText: "忽略文件夹",
+          cancelText: "取消下载",
+        );
+        if (result == null || result != MessageDialogResult.ok) {
+          return;
+        }
+      } else {
+        result = await showMessageDialog(
+          context,
+          "提示",
+          "此方式下载文件夹效率较低，推荐使用下载为zip或tar.gz等压缩文件方式下载。",
+          okText: "继续下载",
+          cancelText: "取消下载",
+        );
+      }
+      if (result == null || result != MessageDialogResult.ok) {
+        return;
+      }
+    }
+
+    for (FileItem file in Global.filePages[widget.pageID]!.fileItems) {
+      if (!file.selected) {
+        continue;
+      }
+      downloadFile(file, locationPath);
     }
   }
 
@@ -1068,6 +1107,7 @@ class _FilesPageState extends State<FilesPage> {
           taskType: TaskType.package,
           localFilePath: p.join(location, file.entry.name + fileType),
           remoteFilePath: joinPath([_currPath, file.entry.name]),
+          urlUpload: "",
           params: {
             "file_type": fileType,
           },
@@ -1294,16 +1334,28 @@ class _FilesPageState extends State<FilesPage> {
         pageID: widget.pageID,
         taskType: TaskType.upload,
         localFilePath: file.path,
-        remoteFilePath: urlUpload,
+        remoteFilePath: joinPath([_currPath, file.name]),
+        urlUpload: urlUpload,
         params: {"path": _currPath},
       );
       Global.taskManager!.addTask(task);
-      showTaskDialog(context);
     }
+    showTaskDialog(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    int totalSize = 0;
+    int totalSelectedSize = 0;
+    for (var file in Global.filePages[widget.pageID]!.fileItems) {
+      if (file.entry.isDir) {
+        continue;
+      }
+      if (file.selected) {
+        totalSelectedSize += file.entry.size;
+      }
+      totalSize += file.entry.size;
+    }
     return Container(
         color: Colors.white,
         child: ProgressDialog(
@@ -1345,6 +1397,24 @@ class _FilesPageState extends State<FilesPage> {
                       ),
                     ),
                   ),
+                  Row(
+                    children: [
+                      Spacer(),
+                      Text(
+                          "共${Global.filePages[widget.pageID]!.fileItems.length}项"),
+                      totalSize > 0
+                          ? Text(" (${formatBytes(totalSize, 2)})")
+                          : Container(),
+                      Global.filePages[widget.pageID]!.selectedCount > 0
+                          ? Text(
+                              "，${Global.filePages[widget.pageID]!.selectedCount} 个被选中 ")
+                          : Container(),
+                      totalSelectedSize > 0
+                          ? Text(" (${formatBytes(totalSelectedSize, 2)})")
+                          : Container(),
+                      Spacer(),
+                    ],
+                  )
                 ],
               ),
             ),

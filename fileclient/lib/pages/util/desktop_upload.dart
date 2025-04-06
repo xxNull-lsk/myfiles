@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:fileclient/global.dart';
+import 'package:fileclient/util.dart';
 
 import '../../backend/dio_util.dart';
 import '../../backend/task_manager.dart';
@@ -22,7 +23,8 @@ Future<bool> onUpload(
     pageID: pageID,
     taskType: TaskType.upload,
     localFilePath: file.files.first.path!,
-    remoteFilePath: url,
+    remoteFilePath: joinPath([params["path"], file.files.first.name]),
+    urlUpload: url,
     params: params,
   );
   return Global.taskManager!.addTask(task);

@@ -50,8 +50,14 @@ class ServerFileSystem extends BaseFileSystem {
     if (response.statusCode != HttpStatus.ok) {
       return null;
     }
+    var result = response.data;
+    if (result["code"] != 0) {
+      Global.logger
+          ?.e("get file attri failed. ${result["code"]}: ${result["message"]}");
+      return null;
+    }
     FileAttributes attributes = FileAttributes();
-    attributes.fromJson(response.data);
+    attributes.fromJson(result["data"]);
     return attributes;
   }
 

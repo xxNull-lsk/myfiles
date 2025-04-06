@@ -8,8 +8,9 @@ echo "build %VERSION%..."
 rem 处理版本号，将版本号写入到pubspec.yaml文件中
 powershell -Command "(Get-Content pubspec.yaml) -replace 'version: .*', 'version: %VERSION%' | Set-Content pubspec.yaml"
 
-call flutter build windows --release
+set HTTPS_PROXY=http://10.0.2.22:7890
 del /Q /S /F ..\dist\myfileclient_windows_x64
+call flutter build windows --release
 mkdir ..\dist\myfileclient_windows_x64
 copy /Y cfg.json ..\dist\myfileclient_windows_x64
 xcopy /E /K /Y build\windows\x64\runner\Release\* ..\dist\myfileclient_windows_x64

@@ -655,6 +655,17 @@ class HomePageState extends State<HomePage> {
     if (Global.taskManager == null || Global.taskManager!.tasks.isEmpty) {
       return const SizedBox();
     }
+    int count = 0;
+    Color color = Colors.red;
+    for (TransTaskItem task in Global.taskManager!.tasks) {
+      if (task.status != TransStatus.succeed && task.status!= TransStatus.failed) {
+        count++;
+      }
+    }
+    if (count == 0){
+      color = Colors.green;
+      count = Global.taskManager!.tasks.length;
+    }
     Widget icon = Stack(
       alignment: Alignment.center,
       children: [
@@ -666,10 +677,10 @@ class HomePageState extends State<HomePage> {
           right: 0.0,
           top: 0.0,
           child: CircleAvatar(
-            backgroundColor: Colors.red,
+            backgroundColor: color,
             radius: 8.0,
             child: Text(
-              '${Global.taskManager!.tasks.length}',
+              count.toString(),
               style: TextStyle(color: Colors.white, fontSize: 11), // 角标文字样式
             ),
           ),

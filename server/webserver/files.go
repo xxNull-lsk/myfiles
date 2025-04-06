@@ -282,6 +282,7 @@ func (ws *WebServer) ReqGetAttribute() gin.HandlerFunc {
 		}
 
 		dataRecursion, _ := c.GetQuery("recursion")
+		withData := c.DefaultQuery("with_data", "0")
 		info, _ := os.Stat(filePath)
 		fileEntry := lib.FileDirEntryInfo{
 			BaseInfo: lib.FileEntry{
@@ -304,7 +305,15 @@ func (ws *WebServer) ReqGetAttribute() gin.HandlerFunc {
 		} else {
 			fileEntry.FileCount++
 		}
-		c.JSON(http.StatusOK, fileEntry)
+		if withData == "1" {
+			c.JSON(http.StatusOK, gin.H{
+				"code":    0,
+				"message": "ok",
+				"data":    fileEntry,
+			})
+		} else {
+			c.JSON(http.StatusOK, fileEntry)
+		}
 	}
 }
 

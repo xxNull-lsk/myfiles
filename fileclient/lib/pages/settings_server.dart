@@ -136,12 +136,12 @@ class _SettingsServerPageState extends State<SettingsServerPage> {
                   _loading = false;
                   onServerInfoSucceed(res);
                 }),
-          onFailed);
+          onFailed, false, "1s");
     });
 
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_autoRefresh) {
-        Backend.getServerInfo(onServerInfoSucceed, onFailed);
+        Backend.getServerInfo(onServerInfoSucceed, onFailed, true, "1s");
       }
     });
 

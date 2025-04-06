@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -85,6 +86,21 @@ func MiddlewareInstall(ws *WebServer) gin.HandlerFunc {
 			return
 		}
 		c.Next()
+	}
+}
+
+func LoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Record the start time
+		start := time.Now()
+
+		// Process the request
+		c.Next()
+
+		// Calculate the elapsed time
+		elapsed := time.Since(start)
+
+		lib.Logger.Infof("[GIN] %s %s took %s", c.Request.Method, c.Request.URL.Path, elapsed)
 	}
 }
 
