@@ -55,6 +55,20 @@ class _MyDrawerState extends State<MyDrawer> {
       ),
     ];
 
+    if (Global.userInfo.isAdmin) {
+      baseItems.add(ListTile(
+        minTileHeight: 32,
+        leading: const Icon(Icons.monitor_heart),
+        title: const Text("资源监控"),
+        onTap: () {
+          Global.filesKey.currentState?.gotoPage(PageType.serverMonitor);
+          if (Global.showMode == ShowMode.portrait) {
+            Navigator.pop(context);
+          }
+        },
+      ));
+    }
+
     listenEventRefreshFavorites =
         EventBusSingleton.instance.on<EventRefreshFavorites>().listen((event) {
       Backend.getFavorites(getFavorites, onFailed);

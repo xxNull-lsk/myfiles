@@ -357,6 +357,26 @@ class Backend {
     });
   }
 
+  static Future<void> getServerDiskInfo(HttpSucceedCallback onSucceed,
+      HttpFailedCallback onFailed) {
+    return DioUtil.doGET("/api/system/disk", onSucceed, onFailed, {});
+  }
+
+  static Future<void> getServerCpuInfo(HttpSucceedCallback onSucceed,
+      HttpFailedCallback onFailed) {
+    return DioUtil.doGET("/api/system/cpu", onSucceed, onFailed, {});
+  }
+
+  static Future<void> getServerMemoryInfo(HttpSucceedCallback onSucceed,
+      HttpFailedCallback onFailed) {
+    return DioUtil.doGET("/api/system/memory", onSucceed, onFailed, {});
+  }
+
+  static Future<void> getServerNetworkInfo(HttpSucceedCallback onSucceed,
+      HttpFailedCallback onFailed) {
+    return DioUtil.doGET("/api/system/net", onSucceed, onFailed, {});
+  }
+
   static Future<void> deleteUser(UserInfo userInfo,
       HttpSucceedCallback onSucceed, HttpFailedCallback onFailed) {
     return DioUtil.doDELETE(

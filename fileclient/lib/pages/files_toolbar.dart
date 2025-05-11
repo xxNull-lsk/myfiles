@@ -187,7 +187,13 @@ List getFileToolbarItems(int pageID) {
     {
       "icon": Icons.sort,
       "onPressed": null,
-      "name": "排序",
+      "name": () {
+        String name = Global.filePages[pageID]!.sortBy.chineseName;
+        if (Global.filePages[pageID]!.sortDesc) {
+          return "$name(倒序)";
+        }
+        return name;
+      },
       "show_mode": ToolbarItemShowMode.any,
       "show_in_menu": true,
       "children": [
@@ -293,7 +299,7 @@ class _FilesToolbarState extends State<FilesToolbar> {
             buildPopupMenuItems(context, item["children"]);
 
         result.add(PopupMenuButton<String>(
-            tooltip: item["name"],
+            tooltip: item["name"] is String ? item["name"] : item["name"](),
             itemBuilder: (context) => menuItems,
             onSelected: (value) =>
                 onSelectPopupMenuItem(value, item["children"]),
@@ -307,7 +313,7 @@ class _FilesToolbarState extends State<FilesToolbar> {
             color: item.containsKey("enabled") && item["enabled"]
                 ? Colors.orange
                 : null),
-        tooltip: item["name"],
+        tooltip: item["name"] is String? item["name"] : item["name"](),
       ));
     }
     return result;
@@ -348,7 +354,7 @@ class _FilesToolbarState extends State<FilesToolbar> {
             buildPopupMenuItems(context, item["children"]);
 
         result.add(PopupMenuButton<String>(
-            tooltip: item["name"],
+            tooltip: item["name"] is String? item["name"] : item["name"](),
             itemBuilder: (context) => menuItems,
             onSelected: (value) =>
                 onSelectPopupMenuItem(value, item["children"]),
@@ -362,7 +368,7 @@ class _FilesToolbarState extends State<FilesToolbar> {
             color: item.containsKey("enabled") && item["enabled"]
                 ? Colors.orange
                 : null),
-        tooltip: item["name"],
+        tooltip: item["name"] is String? item["name"] : item["name"](),
       ));
     }
     result.add(PopupMenuButton(
@@ -410,7 +416,7 @@ class _FilesToolbarState extends State<FilesToolbar> {
           height: 4,
           child: Row(
             children: [
-              Text(item["name"]),
+              Text(item["name"] is String? item["name"] : item["name"]()),
               SizedBox(width: 5),
               Expanded(
                   child: Divider(
@@ -433,7 +439,7 @@ class _FilesToolbarState extends State<FilesToolbar> {
           children: [
             Icon(item["icon"], color: color),
             const SizedBox(width: 8),
-            Text(item["name"]),
+            Text(item["name"] is String? item["name"] : item["name"]()),
             const SizedBox(width: 8),
             item.containsKey("enabled") && item["enabled"]
                 ? const Icon(

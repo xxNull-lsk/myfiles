@@ -329,6 +329,7 @@ func (ws *WebServer) ReqCreateFolder() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 2009, "message": "create folder failed"})
 			return
 		}
+
 		c.JSON(http.StatusOK, gin.H{"code": 0, "message": "create folder succeed"})
 	}
 }

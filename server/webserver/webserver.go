@@ -12,13 +12,57 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/net"
 )
 
+type NetStateInfo struct {
+	Time time.Time
+	Stat []net.IOCountersStat
+}
+
+type DiskStateInfo struct {
+	Time time.Time
+	Stat map[string]disk.IOCountersStat
+}
+
+type CpuStatus struct {
+	TotalPercent    []float64
+	PerPercents     []float64
+	Temperature     float64
+	PreTemperatures []float64
+}
+
+type CpuStateInfo struct {
+	Time time.Time `json:"time"`
+	Stat CpuStatus `json:"stat"`
+}
+
+type BlockStatus struct {
+	ReadSpeed  float64 `json:"read_speed"`
+	WriteSpeed float64 `json:"write_speed"`
+}
+
+type BlockStateInfo struct {
+	Time time.Time   `json:"time"`
+	Stat BlockStatus `json:"stat"`
+}
+
+type MemoryStateInfo struct {
+	Time time.Time             `json:"time"`
+	Stat mem.VirtualMemoryStat `json:"stat"`
+}
+
 type WebServer struct {
-	InstallMode bool
-	RootDir     string
-	TempDir     string
-	Database    db.Database
+	InstallMode  bool
+	RootDir      string
+	TempDir      string
+	Database     db.Database
+	CpuStatus    []CpuStateInfo
+	NetStates    []NetStateInfo
+	DiskStates   []DiskStateInfo
+	MemoryStates []MemoryStateInfo
 }
 
 func (ws *WebServer) ReqVersion() gin.HandlerFunc {

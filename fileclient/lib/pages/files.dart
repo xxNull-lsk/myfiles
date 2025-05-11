@@ -631,40 +631,50 @@ class _FilesPageState extends State<FilesPage> {
     });
   }
 
+  SortBy _sortBy = SortBy.sortNone;
   void onSort() {
-    Global.filePages[widget.pageID]!.sortDesc =
-        !Global.filePages[widget.pageID]!.sortDesc;
+    // 如果当前排序方式与上次相同，则切换排序方向
+    if (_sortBy == Global.filePages[widget.pageID]!.sortBy) {
+      Global.filePages[widget.pageID]!.sortDesc =
+          !Global.filePages[widget.pageID]!.sortDesc;
+    }
+    _sortBy = Global.filePages[widget.pageID]!.sortBy;
+    onSortByType(Global.filePages[widget.pageID]!.sortDesc,
+        Global.filePages[widget.pageID]!.sortBy);
+
+    // 通过更新标题栏方式实现强制更新工具栏
+    EventBusSingleton.instance.fire(EventUpdateTitle(widget.pageID));
+  }
+
+  void onSortByType(bool sortDesc, SortBy sortBy) {
     Global.filePages[widget.pageID]!.fileItems.sort((a, b) {
-      bool sortDesc = Global.filePages[widget.pageID]!.sortDesc;
+      if (a.entry.isDir && !b.entry.isDir) {
+        return -1;
+      } else if (!a.entry.isDir && b.entry.isDir) {
+        return 1;
+      }
       switch (Global.filePages[widget.pageID]!.sortBy) {
         case SortBy.sortByName:
-          return sortDesc
+          return !sortDesc
               ? a.entry.name.compareTo(b.entry.name)
               : b.entry.name.compareTo(a.entry.name);
         case SortBy.sortBySize:
           int asize = a.entry.isDir ? -1 : a.entry.size;
           int bsize = b.entry.isDir ? -1 : b.entry.size;
-          return sortDesc ? asize.compareTo(bsize) : bsize.compareTo(asize);
+          return !sortDesc ? asize.compareTo(bsize) : bsize.compareTo(asize);
         case SortBy.sortByModified:
-          return sortDesc
+          return !sortDesc
               ? a.entry.modifiedAt.compareTo(b.entry.modifiedAt)
               : b.entry.modifiedAt.compareTo(a.entry.modifiedAt);
         case SortBy.sortByCreated:
-          return sortDesc
+          return !sortDesc
               ? a.entry.createdAt.compareTo(b.entry.createdAt)
               : b.entry.createdAt.compareTo(a.entry.createdAt);
         default:
-          // 按类型排序
-          if (a.entry.isDir == b.entry.isDir) {
-            return 0;
-          }
-          if (a.entry.isDir) {
-            return sortDesc ? -1 : 1;
-          }
-          if (b.entry.isDir) {
-            return sortDesc ? 1 : -1;
-          }
-          return 0;
+          // 按文件类型排序
+          String aext = p.extension(a.entry.name).toLowerCase();
+          String bext = p.extension(b.entry.name).toLowerCase();
+          return aext.compareTo(bext);
       }
     });
     setState(() {});
@@ -688,7 +698,6 @@ class _FilesPageState extends State<FilesPage> {
       }
       Global.filePages[widget.pageID]!.fileItems.add(fileItem);
     }
-    onSort();
     String oldPath = _currPath;
     if (_pathItems.isNotEmpty && _pathItems.last.startsWith(_currPath)) {
       oldPath = _pathItems.last;
@@ -714,6 +723,9 @@ class _FilesPageState extends State<FilesPage> {
     if (!mounted) {
       return;
     }
+
+    onSortByType(Global.filePages[widget.pageID]!.sortDesc,
+        Global.filePages[widget.pageID]!.sortBy);
     setState(() {});
   }
 
@@ -1184,7 +1196,7 @@ class _FilesPageState extends State<FilesPage> {
       }
       popupMenuEntries.add(ListTile(
         leading: Icon(item["icon"]),
-        title: Text(item["name"]),
+        title: Text(item["name"] is Function ? item["name"]() : item["name"]),
         onTap: () {
           Navigator.of(context).pop();
           item["onPressed"]();

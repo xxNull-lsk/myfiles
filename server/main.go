@@ -222,6 +222,10 @@ func main() {
 
 	// 定时清理临时文件夹
 	go autoCleanTemp()
+	go ws.MontiorCpuInformation()
+	go ws.MontiorNetInformation()
+	go ws.MontiorDiskInformation()
+	go ws.MontiorMemoryInformation()
 
 	// 定义路由
 	if !cfg.Server.DisableWebUI {
@@ -246,6 +250,10 @@ func main() {
 	r.POST("/api/login", webserver.MiddlewareInstall(&ws), ws.ReqLogin())
 
 	r.GET("/api/system", webserver.MiddlewareInstall(&ws), webserver.AuthAdminMiddleware(), ws.ReqGetSystemInformation())
+	r.GET("/api/system/net", webserver.MiddlewareInstall(&ws), webserver.AuthAdminMiddleware(), ws.ReqGetNetInformation())
+	r.GET("/api/system/disk", webserver.MiddlewareInstall(&ws), webserver.AuthAdminMiddleware(), ws.ReqGetDiskInformation())
+	r.GET("/api/system/cpu", webserver.MiddlewareInstall(&ws), webserver.AuthAdminMiddleware(), ws.ReqGetCpuInformation())
+	r.GET("/api/system/memory", webserver.MiddlewareInstall(&ws), webserver.AuthAdminMiddleware(), ws.ReqGetMemoryInformation())
 
 	r.GET("/api/user/setting", webserver.MiddlewareInstall(&ws), webserver.AuthMiddleware(), ws.ReqGetUserSetting())
 	r.POST("/api/user/setting", webserver.MiddlewareInstall(&ws), webserver.AuthMiddleware(), ws.ReqSetUserSetting())

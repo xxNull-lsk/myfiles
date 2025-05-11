@@ -215,13 +215,33 @@ enum SortBy {
   sortByType,
   sortByModified,
   sortByCreated,
+  sortNone,
 }
+extension SortByExtension on SortBy {
+  String get chineseName {
+    switch (this) {
+      case SortBy.sortBySize:
+        return '大小排序';
+      case SortBy.sortByName:
+        return '名称排序';
+      case SortBy.sortByType:
+        return '类型排序';
+      case SortBy.sortByModified:
+        return '修改时间排序';
+      case SortBy.sortByCreated:
+        return '创建时间排序';
+      case SortBy.sortNone:
+        return '不排序';
+    }
+  }
+}
+
 
 class PageData {
   String path = "";
   int pageID = -1;
   int selectedCount = 0;
-  SortBy sortBy = SortBy.sortByType; // 排序方式
+  SortBy sortBy = SortBy.sortByName; // 排序方式
   bool sortDesc = false; // false: 升序 true: 降序
   List<FileItem> fileItems = [];
   PageData(this.path, this.pageID, this.selectedCount);
@@ -488,5 +508,6 @@ enum PageType {
   serverFiles,
   shared,
   settings,
+  serverMonitor,
   xterm,
 }

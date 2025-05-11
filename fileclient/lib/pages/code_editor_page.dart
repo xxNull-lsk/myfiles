@@ -77,7 +77,7 @@ class _CodeEditorPageState extends State<CodeEditorPage> {
         controller: _controller,
         style: CodeEditorStyle(
           fontSize: 18,
-          fontFamily: 'monospace',
+          fontFamily: 'NotoSansMono',
           selectionColor: Colors.blue.withOpacity(0.3),
           cursorColor: Colors.blue,
           codeTheme: CodeHighlightTheme(languages: {

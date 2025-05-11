@@ -9,6 +9,7 @@ import 'package:ionicons/ionicons.dart';
 import 'package:toastification/toastification.dart';
 
 import '../dialog/input_dialog.dart';
+import 'server_monitor.dart';
 import 'util/desktop_check.dart' if (dart.library.html) 'util/web_check.dart';
 import '../backend/task_manager.dart';
 import '../backend/backend.dart';
@@ -204,6 +205,8 @@ class HomePageState extends State<HomePage> {
           break;
         case PageType.xterm:
           throw UnimplementedError();
+        case PageType.serverMonitor:
+          _pages.add(ServerMonitorPage(key: GlobalKey(debugLabel: 'server')));
       }
       tabIndex = _pages.length - 1;
       Future.delayed(Duration(milliseconds: 200), () {

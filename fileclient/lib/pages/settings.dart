@@ -1,5 +1,4 @@
 import 'package:fileclient/pages/base_page.dart';
-import 'package:fileclient/pages/settings_server.dart';
 import 'package:flutter/material.dart';
 
 import '../global.dart';
@@ -47,7 +46,6 @@ class _SettingsPageState extends State<SettingsPage> {
         const Tab(text: '个人设置'),
         const Tab(text: '日志设置'),
         const Tab(text: '用户管理'),
-        const Tab(text: '服务器信息'),
       ];
       _tabPages = [
         const Center(
@@ -58,9 +56,6 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const Center(
           child: SettingsUsersPage(),
-        ),
-        const Center(
-          child: SettingsServerPage(),
         ),
       ];
     } else {

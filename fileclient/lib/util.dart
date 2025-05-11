@@ -25,6 +25,20 @@ String removeRightChars(String str, String chars) {
   return str.substring(0, index + 1);
 }
 
+String formatDiskBytes(int sectors, int decimals, {bool fixWidth = false}) {
+  if (sectors == 0) return '0 B';
+  const suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  final bytes = sectors * 512;
+  final i = (log(bytes) / log(1000)).floor();
+  final value = bytes / pow(1000, i);
+  String decimalValue = value.toStringAsFixed(decimals);
+  if (!fixWidth) {
+    decimalValue = removeRightChars(decimalValue, '0');
+    decimalValue = removeRightChars(decimalValue, '.');
+  }
+  return '$decimalValue ${suffixes[i]}';
+}
+
 String formatBytes(int bytes, int decimals, {bool fixWidth = false}) {
   if (bytes == 0) return '0 B';
   const suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
