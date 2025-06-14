@@ -69,6 +69,9 @@ class HomePageState extends State<HomePage> {
       }
       setState(() {});
     });
+    Future.delayed(const Duration(milliseconds: 200)).then((e) {
+      EventBusSingleton.instance.fire(EventRefreshFavorites());
+    });
   }
 
   @override
@@ -661,11 +664,12 @@ class HomePageState extends State<HomePage> {
     int count = 0;
     Color color = Colors.red;
     for (TransTaskItem task in Global.taskManager!.tasks) {
-      if (task.status != TransStatus.succeed && task.status!= TransStatus.failed) {
+      if (task.status != TransStatus.succeed &&
+          task.status != TransStatus.failed) {
         count++;
       }
     }
-    if (count == 0){
+    if (count == 0) {
       color = Colors.green;
       count = Global.taskManager!.tasks.length;
     }

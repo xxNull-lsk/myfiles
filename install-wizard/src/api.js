@@ -16,11 +16,12 @@ export const getServerInfo = async () => {
     }
 };
 
-export const doInstall = async (logger, server) => {
+export const doInstall = async (logger, server, user) => {
     try {
         const response = await axios.post('/api/install', {
             logger,
-            server
+            server,
+            user,
         });
         // 如果不是json格式，返回错误信息
         if (!response.headers['content-type'].includes('application/json')) {

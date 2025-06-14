@@ -237,11 +237,15 @@ func AuthAdminMiddleware() gin.HandlerFunc {
 	}
 }
 
+type UserRequest struct {
+	UserName string `json:"user_name"`
+	Password string `json:"password"`
+}
+
 type InstallRequest struct {
-	Logger   lib.ConfigLogger `json:"logger"`
-	Server   lib.ServerConfig `json:"server"`
-	UserName string           `json:"user_name"`
-	Password string           `json:"password"`
+	Logger lib.ConfigLogger `json:"logger"`
+	Server lib.ServerConfig `json:"server"`
+	User   UserRequest      `json:"user"`
 }
 
 func (ws *WebServer) ReqGetInstall(cfg *lib.Config) gin.HandlerFunc {
@@ -315,8 +319,8 @@ func (ws *WebServer) ReqInstall(cfgFileName string, cfg *lib.Config) gin.Handler
 		GetInstance().Database = &ws.Database
 		// 创建默认用户
 		adminEntry := db.UserEntry{
-			Name:         req.UserName,
-			Password:     req.Password,
+			Name:         req.User.UserName,
+			Password:     req.User.Password,
 			IsAdmin:      true,
 			Enabled:      true,
 			RootDir:      "/",

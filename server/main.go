@@ -164,19 +164,6 @@ func main() {
 	r.Use(ginzap.RecoveryWithZap(lib.Logger.Desugar(), true))
 	r.Use(Cors())
 	ws := webserver.WebServer{}
-	if cfg.Server.RootDir == "" {
-		// 获取当前目录
-		dir, err := os.Getwd()
-		if err != nil {
-			log.Println("get current dir failed!", err)
-			return
-		}
-		cfg.Server.RootDir = dir
-	}
-
-	if cfg.Server.TempDir == "" {
-		cfg.Server.TempDir = path.Join(cfg.Server.RootDir, ".fileserver_temp")
-	}
 	ws.RootDir = cfg.Server.RootDir
 	ws.TempDir = cfg.Server.TempDir
 	if cfg.Version.AppTime != "" {

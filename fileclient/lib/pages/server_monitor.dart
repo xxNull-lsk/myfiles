@@ -5,7 +5,6 @@ import 'server/server_cpu.dart';
 import 'server/server_disk.dart';
 import 'server/server_memory.dart';
 import 'server/server_network.dart';
-import 'server/server_process.dart';
 
 import '../global.dart';
 

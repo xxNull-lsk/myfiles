@@ -3,6 +3,7 @@
     <el-steps :active="step - 1" finish-status="success">
       <el-step title="欢迎"></el-step>
       <el-step title="配置服务器设置"></el-step>
+      <el-step title="配置账号"></el-step>
       <el-step title="配置日志设置"></el-step>
       <el-step title="安装完成"></el-step>
     </el-steps>
@@ -30,15 +31,6 @@
           <el-form-item label="数据库文件的位置" prop="database_file">
             <el-input v-model="serverSettings.database_file"></el-input>
           </el-form-item>
-          <el-form-item label="默认账号名" prop="user_name">
-            <el-input v-model="serverSettings.user_name"></el-input>
-          </el-form-item>
-          <el-form-item label="账号密码" prop="password">
-            <el-input v-model="serverSettings.password" type="password"></el-input>
-          </el-form-item>
-          <el-form-item label="确认密码" prop="confirmPassword">
-            <el-input v-model="serverSettings.confirmPassword" type="password"></el-input>
-          </el-form-item>
           <el-form-item label="禁用内置Web界面">
             <el-switch v-model="serverSettings.disable_webui"></el-switch>
           </el-form-item>
@@ -50,7 +42,27 @@
     <div v-if="step === 3">
       <el-card>
         <template #header>
-          <h2>步骤 3: 日志参数设置</h2>
+          <h2>步骤 3: 账号设置</h2>
+        </template>
+        <el-form :model="userSettings" ref="userFormRef" :rules="userRules">
+          <el-form-item label="默认账号名" prop="user_name">
+            <el-input v-model="userSettings.user_name"></el-input>
+          </el-form-item>
+          <el-form-item label="账号密码" prop="password">
+            <el-input v-model="userSettings.password" type="password"></el-input>
+          </el-form-item>
+          <el-form-item label="确认密码" prop="confirmPassword">
+            <el-input v-model="userSettings.confirmPassword" type="password"></el-input>
+          </el-form-item>
+        </el-form>
+        <el-button @click="prevStep">上一步</el-button>
+        <el-button @click="submitUserForm">下一步</el-button>
+      </el-card>
+    </div>
+    <div v-if="step === 4">
+      <el-card>
+        <template #header>
+          <h2>步骤 4: 日志参数设置</h2>
         </template>
         <el-form :model="logSettings">
           <el-form-item label="日志路径">
@@ -92,10 +104,10 @@
         <el-button @click="nextStep">下一步</el-button>
       </el-card>
     </div>
-    <div v-if="step === 4">
+    <div v-if="step === 5">
       <el-card>
         <template #header>
-          <h2>步骤 4: 安装完成</h2>
+          <h2>步骤 5: 安装完成</h2>
         </template>
         <p>确认所有设置无误后，点击“安装”按钮开始安装。</p>
         <el-button @click="prevStep">上一步</el-button>
@@ -114,6 +126,8 @@ import { ref, onMounted } from 'vue';
 // 引入 api.js 中的函数
 import { getServerInfo, doInstall } from '../api.js';
 import { ElNotification } from 'element-plus';
+// 引入 crypto-js 库
+import CryptoJS from 'crypto-js';
 
 // 初始化步骤为1
 const step = ref(1);
@@ -132,15 +146,19 @@ const serverSettings = ref({
   root_dir: '/mnt/myfileserver',
   temp_dir: '/tmp/myfileserver',
   database_file: '/var/lib/myfileserver/myfileserver.db',
+  disable_webui: false
+});
+
+// 新增服务器设置
+const userSettings = ref({
   user_name: 'admin',
   password: '',
   confirmPassword: '',
-  disable_webui: false
 });
 
 // 自定义密码校验规则
 const validatePassword = (rule, value, callback) => {
-  if (value !== serverSettings.value.password) {
+  if (value !== userSettings.value.password) {
     callback(new Error('两次输入的密码不一致，请重新输入'));
   } else {
     callback();
@@ -158,6 +176,10 @@ const serverRules = ref({
   database_file: [
     { required: true, message: '数据库文件的位置不能为空', trigger: 'blur' }
   ],
+});
+
+// 账号表单验证规则
+const userRules = ref({
   user_name: [
     { required: true, message: '默认账号名不能为空', trigger: 'blur' }
   ],
@@ -180,10 +202,12 @@ const serverVersion = ref({
 
 // 服务器表单引用
 const serverFormRef = ref(null);
+// 账号表单引用
+const userFormRef = ref(null);
 
 // 下一步函数
 const nextStep = () => {
-  if (step.value < 4) {
+  if (step.value < 5) {
     step.value++;
   }
 };
@@ -199,6 +223,17 @@ const submitServerForm = () => {
   });
 };
 
+// 提交服务器表单函数
+const submitUserForm = () => {
+  userFormRef.value.validate((valid) => {
+    if (valid) {
+      nextStep();
+    } else {
+      console.log('账号表单验证失败');
+    }
+  });
+};
+
 // 上一步函数
 const prevStep = () => {
   if (step.value > 1) {
@@ -208,9 +243,12 @@ const prevStep = () => {
 
 // 开始安装函数
 const startInstall = async () => {
-  const result = await doInstall(logSettings.value, serverSettings.value);
+  // 使用 crypto-js 进行 SHA-512 加密
+  userSettings.value.password = CryptoJS.SHA512(userSettings.value.password).toString(CryptoJS.enc.Hex);
+  userSettings.value.confirmPassword = userSettings.value.password;
+  const result = await doInstall(logSettings.value, serverSettings.value, userSettings.value);
   if (result.code === 0) {
-    step.value = 4;
+    step.value = 5;
     ElNotification({
       title: '成功',
       message: '安装成功！',
